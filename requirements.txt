@@ -1,5 +1,8 @@
 IPython
 mesa
+solara
+altair
+networkx
 ipynb
 axelrod
 statsmodels
