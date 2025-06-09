@@ -64,24 +64,20 @@ class SugarModel(Model):
 # --- Run Workflow Example ---
 if __name__ == '__main__':
     model = SugarModel()
-    for i in range(100):
+    for i in range(1000):
         model.step()
 
     # Access collected data
     results = model.datacollector.get_model_vars_dataframe()
     agent_df = model.datacollector.get_agent_vars_dataframe()
-    print("Model Results:")
-    print(results.head())
-    print(results.tail())
-
-    print("Agent Results:")
-    print(agent_df.head())
-    print(agent_df.tail())
-    distribution = agent_df.groupby("SugarLevel").size()
 
     # Plotting (Histogram)
     import matplotlib.pyplot as plt
-    agent_df["SugarLevel"].hist(bins=range(0, 25), edgecolor="black")
+    # get step = 100, which is the last step
+    print("Agent Sugar Level Distribution at Step 1000:")
+    print(agent_df[agent_df.index.get_level_values(0) == 1000]["SugarLevel"])
+
+    agent_df[agent_df.index.get_level_values(0) == 1000]["SugarLevel"].hist(bins=range(0, 1000), edgecolor="black")
     plt.xlabel("Sugar Level")
     plt.ylabel("Number of Agents")
     plt.title("Agent Sugar Level Distribution")
