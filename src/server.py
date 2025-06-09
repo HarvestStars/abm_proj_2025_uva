@@ -22,8 +22,8 @@ sugarscape_space = make_mpl_space_component(
 
 # 4. Model parameters for interactive sliders
 model_params = {
-    "width": 50,
-    "height": 50,
+    "width": 10,
+    "height": 10,
     "num_agents": 2,
 }
 

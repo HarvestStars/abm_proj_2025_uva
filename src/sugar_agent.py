@@ -50,4 +50,6 @@ class SugarAgent(Agent):
         new_pos = self.choose_move()
         self.model.grid.move_agent(self, new_pos)
         x, y = new_pos
+        self.pos = (x, y)
         self.model.grid_sugar[x, y] = max(0, self.model.grid_sugar[x, y] - 1)
+        self.model.sugar_layer.modify_cell((x, y), lambda v: max(0, v - 1))
