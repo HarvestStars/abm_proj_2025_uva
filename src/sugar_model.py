@@ -19,7 +19,7 @@ def read_sugar_map():
 
 # --- Model Class ---
 class SugarModel(Model):
-    def __init__(self, width=50, height=50, num_agents=20):
+    def __init__(self, width=50, height=50, num_agents=30):
         super().__init__()
         self.grid = MultiGrid(width, height, torus=False)
         self.grid_sugar = read_sugar_map()
@@ -56,10 +56,9 @@ class SugarModel(Model):
         for x in range(1, self.grid.width - 1):
             for y in range(1, self.grid.height - 1):
                 neighbors = [(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)]
-                if all(len(self.grid.get_cell_list_contents([n])) > 0 for n in neighbors):
-                    self.grid_sugar[x, y] += 10
-                    self.sugar_layer.modify_cell((x, y), lambda v: v + 10)
-
+                if sum(len(self.grid.get_cell_list_contents([n])) for n in neighbors) >= 3:
+                    self.grid_sugar[x, y] += 2
+                    self.sugar_layer.modify_cell((x, y), lambda v: v + 2)
 
 # --- Run Workflow Example ---
 if __name__ == '__main__':
@@ -70,12 +69,19 @@ if __name__ == '__main__':
     # Access collected data
     results = model.datacollector.get_model_vars_dataframe()
     agent_df = model.datacollector.get_agent_vars_dataframe()
+    results.to_csv("sugar_model_results_lamda_1.csv")
+    agent_df.to_csv("sugar_agent_results_lamda_1.csv")
 
     # Plotting (Histogram)
     import matplotlib.pyplot as plt
     # get step = 100, which is the last step
     print("Agent Sugar Level Distribution at Step 1000:")
     print(agent_df[agent_df.index.get_level_values(0) == 1000]["SugarLevel"])
+
+    # group by sugar level and count occurrences
+    plt.figure(figsize=(10, 6))
+    distribution = agent_df[agent_df.index.get_level_values(0) == 1000].groupby("SugarLevel").size()
+    print("Sugar Level Distribution:", distribution)
 
     agent_df[agent_df.index.get_level_values(0) == 1000]["SugarLevel"].hist(bins=range(0, 1000), edgecolor="black")
     plt.xlabel("Sugar Level")

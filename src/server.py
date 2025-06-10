@@ -19,7 +19,8 @@ def agent_portrayal(agent):
     g = 1.0 - sugar_norm  # more sugar, less green
     b = 1.0 - sugar_norm  # more sugar, less blue
 
-    size = 5 + sugar_absorb * 1
+    # size = 5 + sugar_absorb * 1
+    size = 10
     return {"marker": "o", "color": (r, g, b), "size": size}
 
 # 2. Property-layer portrayal: sugar field in orange gradient

@@ -13,6 +13,10 @@ class SugarAgent(Agent):
         return self.model.grid_sugar[x, y]  # Use numpy sugar grid directly
 
     def choose_move(self):
+        # alpha = 1 ; U = alpha * 0.3
+        # probs = exp(lambda * U) / sum(exp(lambda * U_i))
+
+        # to be replaced with a more complex utility function
         neighbors = self.model.grid.get_neighborhood(self.pos, moore=True, include_center=False)
         utilities = np.array([self.compute_utility(pos) for pos in neighbors], dtype=float)
         exp_utilities = np.exp(utilities)
@@ -25,6 +29,6 @@ class SugarAgent(Agent):
         self.model.grid.move_agent(self, new_pos)
         x, y = new_pos
         if self.model.grid_sugar[x, y] > 0:
-            self.sugar_level += 1
+            self.sugar_level += 1 # maybe grid sugar * 10%
         self.model.grid_sugar[x, y] = max(0, self.model.grid_sugar[x, y] - 1)
         self.model.sugar_layer.modify_cell((x, y), lambda v: max(0, v - 1))
