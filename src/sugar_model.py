@@ -58,8 +58,10 @@ class SugarModel(Model):
         
         print(f"Creating {safe_num_agents} agents (requested: {num_agents})")
         
-        sa.SugarAgent.create_agents(self, safe_num_agents)
-        
+        sa.SugarAgent_Neutral.create_agents(self, safe_num_agents)
+        # sa.SugarAgent_Riskseeking.create_agents(self, safe_num_agents)
+        # sa.SugarAgent_Aversion.create_agents(self, safe_num_agents)
+
         # Place agents randomly
         for agent in self.agents:
             x = self.random.randrange(self.grid.width)
@@ -164,17 +166,31 @@ class SugarModel(Model):
 # Test the model dimensions
 if __name__ == '__main__':
     print("Testing model creation with various parameters...")
+
+    MC_TEST_REPEAT = 10  # Number of Monte Carlo tests to run
+    Parameters_lambda = [1, 2, 3, 4, 1000]
+    Parameters_alpha = [-2, -1, 0, 1, 2]
     
-    # Test 1: Default parameters
-    model1 = SugarModel()
-    print(f"Test 1 - Grid: {model1.grid.width}x{model1.grid.height}")
+    # 构造 Parameters_lambda 与 Parameters_alpha 的笛卡尔积
+    param_combinations = [(l, a) for l in Parameters_lambda for a in Parameters_alpha]
+
+    for lambda_param, alpha in param_combinations:
+
+        for i in range(MC_TEST_COUNT := 3):
+            # Test 1: Default parameters
+            model1 = SugarModel()
+            print(f"Test 1 - Grid: {model1.grid.width}x{model1.grid.height}")
+            for i in range(10):
+                model1.step()
+            model1.datacollector.get_model_vars_dataframe().to_csv(f"./{lambda_param}/test1_results_{i}.csv")
+            
+
+    # # Test 2: With different width/height (should be ignored)
+    # model2 = SugarModel(width=20, height=30)
+    # print(f"Test 2 - Grid: {model2.grid.width}x{model2.grid.height}")
     
-    # Test 2: With different width/height (should be ignored)
-    model2 = SugarModel(width=20, height=30)
-    print(f"Test 2 - Grid: {model2.grid.width}x{model2.grid.height}")
+    # # Test 3: With Mesa parameters (should be ignored)
+    # model3 = SugarModel(width=10, height=10, num_agents=50)
+    # print(f"Test 3 - Grid: {model3.grid.width}x{model3.grid.height}")
     
-    # Test 3: With Mesa parameters (should be ignored)
-    model3 = SugarModel(width=10, height=10, num_agents=50)
-    print(f"Test 3 - Grid: {model3.grid.width}x{model3.grid.height}")
-    
-    print("All tests should show the same grid dimensions (50x48)!")
+    # print("All tests should show the same grid dimensions (50x48)!")
