@@ -59,7 +59,7 @@ sugarscape_space = make_mpl_space_component(
     draw_grid=False,
 )
 
-# FIXED: Get actual dimensions from sugar map
+# Get actual dimensions from sugar map
 def get_sugar_map_dimensions():
     """Read sugar map to get actual dimensions"""
     from pathlib import Path
@@ -68,13 +68,12 @@ def get_sugar_map_dimensions():
     height, width = sugar_distribution.shape  # Note: numpy gives (rows, cols) = (height, width)
     return width, height
 
-# Get the actual dimensions
+
 ACTUAL_WIDTH, ACTUAL_HEIGHT = get_sugar_map_dimensions()
 print(f"Sugar map dimensions: {ACTUAL_WIDTH} x {ACTUAL_HEIGHT}")
 
-# FIXED: Model parameters - remove width/height to prevent override
+# Model parameters
 model_params = {
-    # DO NOT include width/height here - they will override the sugar map dimensions
     "num_agents": Slider("Number of Agents", value=100, min=50, max=200, step=10),
     "lambda_param": Slider("Lambda (Logit Noise)", value=1.0, min=0.1, max=50.0, step=0.5),
     "cooperation_rate": Slider("Cooperation Rate", value=0.3, min=0.0, max=0.8, step=0.05),
@@ -101,7 +100,7 @@ def SugarLevelByTypeHistogram(model):
     cooperator_sugar = [agent.sugar_level for agent in model.agents if hasattr(agent, 'is_cooperator') and agent.is_cooperator]
     non_cooperator_sugar = [agent.sugar_level for agent in model.agents if hasattr(agent, 'is_cooperator') and not agent.is_cooperator]
     
-    # Plot 1: Sugar distribution by risk type
+    # Sugar distribution by risk type
     all_sugar_values = risk_averse_sugar + neutral_sugar + risk_seeking_sugar
     if all_sugar_values:
         max_sugar = max(all_sugar_values)
@@ -120,7 +119,7 @@ def SugarLevelByTypeHistogram(model):
     ax1.legend()
     ax1.grid(True, alpha=0.3)
     
-    # Plot 2: Cooperator vs Non-cooperator
+    # Cooperator vs Non-cooperator
     if cooperator_sugar or non_cooperator_sugar:
         all_coop_sugar = cooperator_sugar + non_cooperator_sugar
         if all_coop_sugar:
@@ -138,7 +137,7 @@ def SugarLevelByTypeHistogram(model):
     ax2.legend()
     ax2.grid(True, alpha=0.3)
     
-    # Plot 3: Average sugar by type over time
+    # Average sugar by type over time
     if hasattr(model.datacollector, 'model_vars'):
         df = model.datacollector.get_model_vars_dataframe()
         if len(df) > 1:
@@ -194,7 +193,7 @@ def CooperationStats(model):
             'risk_seeking_cooperators': 0
         }
     
-    # Plot 1: Cooperators by type
+    # Cooperators by type
     types = ['Risk Averse', 'Neutral', 'Risk Seeking']
     cooperator_counts = [
         coop_stats.get('risk_averse_cooperators', 0),
@@ -214,7 +213,7 @@ def CooperationStats(model):
             ax1.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.1, 
                     str(count), ha='center', va='bottom')
     
-    # Plot 2: Cooperation rate over time
+    # Cooperation rate over time
     if hasattr(model.datacollector, 'model_vars'):
         df = model.datacollector.get_model_vars_dataframe()
         if len(df) > 1 and 'NumCooperators' in df.columns:
@@ -233,7 +232,7 @@ def CooperationStats(model):
     plt.tight_layout()
     return solara.FigureMatplotlib(fig)
 
-# FIXED: Create model with correct dimensions
+
 def create_model_with_fixed_dimensions(**kwargs):
     """Create model ensuring correct dimensions from sugar map"""
     # Force the correct dimensions and ignore any width/height in kwargs
