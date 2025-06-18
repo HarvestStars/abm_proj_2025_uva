@@ -8,7 +8,7 @@ from sugar_model import SugarModel
 def run_model(alpha, lambda_):
     """Run the model with given parameters and return outputs. For later re-evaluation"""
     model = SugarModel(width=10, height=10, num_agents=100, alpha = alpha, lambda_ = lambda_) # the input parapemetr needs to be adjusted for sensitivity analysis
-    for _ in range(100):
+    for _ in range(10):
         model.step()
     results = model.datacollector.get_model_vars_dataframe() # only evaluate total sugar as output
     return results
@@ -29,6 +29,7 @@ def model_revaluation(input_space):
         results = [run_model(*x) for j in range(10)]  # run each model 10 times for stochasticity
         avg_result = sum(results) / len(results)  # get the average output out of 10 simulations
         outputs.append(avg_result)
+        print(f"Sample {i+1}: lambda={x[0]}, alpha={x[1]}, total_sugar={avg_result}")
     return np.array(outputs)
 
 
@@ -115,7 +116,7 @@ if __name__ == "__main__":
     'bounds': [[0,100], [-5,5]]  # can be adjusted later
 }
     # generate parameter sample space
-    input_space = hyperlatin_sample(problem, N=10)
+    input_space = hyperlatin_sample(problem, N=5)
     print("Start creating the space")
 
     # re-evaluate the model with the input space
@@ -123,7 +124,7 @@ if __name__ == "__main__":
     print("Model re-evaluation completed.")
 
     # perform PAWN analysis
-    Si = pawn_analysis(outputs, input_space)
+    Si = pawn_analysis(outputs, input_space, problem)
     print("PAWN analysis completed.")
 
     # plot CDFs (both unconditional and conditional)
