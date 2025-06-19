@@ -4,6 +4,7 @@ from SALib.analyze.pawn import analyze
 import numpy as np
 import matplotlib.pyplot as plt
 from sugar_model import SugarModel
+from modify_pawn import modified_analyze # Import the modified analyze function
 
 def run_model(alpha, lambda_):
     """Run the model with given parameters and return outputs. For later re-evaluation"""
@@ -41,7 +42,7 @@ def pawn_analysis(outputs, input_space,problem):
     X = np.array(input_space)
     
     # Perform PAWN analysis
-    Si = analyze(problem, X, Y, S=10, print_to_console=True) #TODO: need to figure out how Si is calculated
+    Si = modified_analyze(problem, X, Y, S=10, print_to_console=True) #TODO: need to figure out how Si is calculated
     return Si # curently we only calculate the Si indices
     # read the document here: https://salib.readthedocs.io/en/latest/_modules/SALib/analyze/pawn.html
 
@@ -121,7 +122,7 @@ if __name__ == "__main__":
     'bounds': [[0,100], [-5,5]]  # can be adjusted later
 }
     # generate parameter sample space
-    input_space = hyperlatin_sample(problem, N=200)
+    input_space = hyperlatin_sample(problem, N=50)
     print("Start creating the space")
 
     # re-evaluate the model with the input space
@@ -136,11 +137,11 @@ if __name__ == "__main__":
     plot_cdf(outputs, input_space, problem)
 
     # perform factor fixing
-    # fixed_factors = factor_fixing(Si)
-    # print("Fixed Factors:", fixed_factors)
+    fixed_factors = factor_fixing(Si)
+    print("Fixed Factors:", fixed_factors)
 
     # plot KS graph
-    # plot_ks_level(Si, problem)
+    plot_ks_level(Si, problem)
 
 
 
