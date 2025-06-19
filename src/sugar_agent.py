@@ -1,7 +1,7 @@
 from mesa import Agent
 import numpy as np
 
-class SugarAgent(Agent):
+class SugarAgent_Neutral(Agent):
     def __init__(self, model, agent_type="neutral", alpha=0.0, is_cooperator=False):
         super().__init__(model)
         self.sugar_level = 0
@@ -149,3 +149,7 @@ class SugarAgent(Agent):
             model.agents.add(agent)
         
         return agents
+    
+# Class SugarAgentSet_Riskseeking(SugarAgent):
+
+# Class SugarAgent_Aversion(SugarAgent):
