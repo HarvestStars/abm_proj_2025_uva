@@ -98,6 +98,7 @@ def plot(T):
     plt.scatter(df['alpha'], df['mean'], color='green', marker='o', facecolors='none', label='Mean')
     plt.scatter(df['alpha'], df['max'], color='blue', marker='x', label='Max')
     plt.scatter(df['alpha'], df['min'], color='red', marker='^', facecolors='none', label='Min')
+    plt.axvline(x=0, color='black', linestyle='--', alpha=0.5)
     plt.xlabel(fr'$\alpha$')
     plt.ylabel('Gini Coefficients')
     # plt.title('OFAT Sensitivity: Effect of Alpha on Gini Coefficients')
@@ -108,5 +109,5 @@ def plot(T):
 if __name__ == '__main__': 
     # # test
     # merge_csv()
-    # OFAT(200)
-    # plot(200)
+    OFAT(100)
+    plot(100)
