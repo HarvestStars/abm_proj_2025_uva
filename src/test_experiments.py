@@ -30,14 +30,15 @@ def test_model_dimensions():
     
     print("All tests should show the same grid dimensions (50x48)!")
 
-def run_mixed_parameter_testing():
+def run_mixed_parameter_testing(steps=200):
     """Option 1: Mixed parameter testing (lambda + alpha combinations)"""
     print("Mixed Parameter Testing (Lambda + Alpha combinations)")
     print("=" * 60)
     
-    MC_TEST_REPEAT = 3
-    Parameters_lambda = [1, 2, 3, 4, 1000]
-    Parameters_alpha = [-2, -1, 0, 1, 2]
+    MC_TEST_REPEAT = 10
+    Parameters_lambda = list(range(1, 21))
+    Parameters_alpha = [0]
+    # Parameters_alpha = [-2, -1, 0, 1, 2]
     
     # Create Cartesian product
     param_combinations = [(l, a) for l in Parameters_lambda for a in Parameters_alpha]
@@ -73,12 +74,12 @@ def run_mixed_parameter_testing():
                 print(f"  Run {i}: Grid {model.grid.width}x{model.grid.height}")
                 
                 # Run simulation
-                for step in range(100):
+                for step in range(steps):
                     model.step()
                 
                 # Save results
                 results = model.datacollector.get_model_vars_dataframe()
-                filename = f"test1_results_alpha_{alpha}_run_{i}.csv"
+                filename = f"test1_results_steps_{steps}_alpha_{alpha}_run_{i}.csv"
                 results.to_csv(lambda_dir / filename)
                 
                 print(f"    Saved: {filename}")
@@ -87,14 +88,14 @@ def run_mixed_parameter_testing():
                 print(f"    Error in run {i}: {e}")
                 continue
 
-def run_alpha_sensitivity_analysis():
+def run_alpha_sensitivity_analysis(steps=200):
     """Option 2: Alpha sensitivity analysis (main research focus)"""
     print("Alpha Sensitivity Analysis (Your desired format)")
     print("="*60)
     
     # Parameters for alpha sensitivity
-    ALPHA_VALUES = np.linspace(-2, 2, 11)  # 11 points for testing
-    MC_RUNS_PER_ALPHA = 5                  # 5 runs for testing
+    ALPHA_VALUES = np.linspace(-20, 20, 21)  # 11 points for testing
+    MC_RUNS_PER_ALPHA = 10                  # 5 runs for testing
     FIXED_LAMBDA = 10
     FIXED_COOPERATION = 0.3
     
@@ -127,7 +128,7 @@ def run_alpha_sensitivity_analysis():
                 )
                 
                 # Run simulation
-                for step in range(200):
+                for step in range(steps):
                     model.step()
                 
                 # Get results
@@ -135,7 +136,7 @@ def run_alpha_sensitivity_analysis():
                 final_row = model_data.iloc[-1]
                 
                 # Save in desired format
-                filename = f"sugar_model_results_alpha_{alpha_center:.1f}_mcindex_{mc_run}.csv"
+                filename = f"sugar_model_results_steps_{steps}_alpha_{alpha_center:.1f}_mcindex_{mc_run}.csv"
                 model_data.to_csv(alpha_output_dir / filename)
                 
                 # Store summary
@@ -221,7 +222,7 @@ def print_alpha_summary(alpha_df):
     for _, row in alpha_stats.iterrows():
         print(f"{row['alpha']:5.1f}\t{row['mean']:8.1f}\t{row['std']:7.1f}\t{row['count']:4.0f}")
 
-def run_full_experiment():
+def run_full_experiment(steps=200):
     """Run the complete experimental suite"""
     print("SUGARSCAPE MODEL TESTING SUITE")
     print("=" * 60)
@@ -232,11 +233,11 @@ def run_full_experiment():
     
     # Test 2: Mixed parameter testing
     print("\n2. Running mixed parameter testing...")
-    run_mixed_parameter_testing()
+    run_mixed_parameter_testing(steps)
     
     # Test 3: Alpha sensitivity analysis
     print("\n3. Running alpha sensitivity analysis...")
-    alpha_df = run_alpha_sensitivity_analysis()
+    alpha_df = run_alpha_sensitivity_analysis(steps)
     
     print("\nTESTING COMPLETE!")
     print("All files saved to output/ folder")
@@ -251,4 +252,5 @@ def run_full_experiment():
     print("- For full experiment: Set MC_RUNS_PER_ALPHA=100, ALPHA_VALUES=21 points")
 
 if __name__ == "__main__":
-    run_full_experiment()
+    # run_full_experiment()
+    run_mixed_parameter_testing(steps=1000)
