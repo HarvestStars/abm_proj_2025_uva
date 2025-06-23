@@ -37,12 +37,12 @@ def hyperlatin_sample(problem, N):
 def run_single_input(x):
     results = [run_model(*x) for _ in range(10)]
     avg_result = sum(results) / len(results)
-    return (x[0], x[1], avg_result)  # return lambda, alpha, and average result
-  
+    return (x[0], x[1], avg_result)  # return lambda, alpha, and result
 
 def model_revaluation(input_space):
-    """Evaluate the model with the given input space."""
+    """Parallel evaluation of model over input space, returning both inputs and outputs."""
     outputs = []
+    inputs = []
 
     print(f"Starting parallel model revaluation on {len(input_space)} samples...")
     with concurrent.futures.ProcessPoolExecutor() as executor:
@@ -51,9 +51,10 @@ def model_revaluation(input_space):
         for i, future in enumerate(concurrent.futures.as_completed(futures)):
             lambda_, alpha, avg_result = future.result()
             outputs.append(avg_result)
+            inputs.append([lambda_, alpha])
             print(f"Sample {i+1}: lambda={lambda_}, alpha={alpha}, total_sugar={avg_result}")
 
-    return np.array(outputs)
+    return np.array(outputs), np.array(inputs)
 
 
 def pawn_analysis(outputs, input_space,problem):
@@ -147,15 +148,15 @@ if __name__ == "__main__":
     print("Start creating the space")
 
     # re-evaluate the model with the input space
-    outputs = model_revaluation(input_space)
+    outputs, inputs = model_revaluation(input_space)
     print("Model re-evaluation completed.")
 
     # perform PAWN analysis
-    Si = pawn_analysis(outputs, input_space, problem)
+    Si = pawn_analysis(outputs, inputs, problem)
     print("PAWN analysis completed.")
 
     # plot CDFs (both unconditional and conditional)
-    plot_cdf(outputs, input_space, problem)
+    plot_cdf(outputs, inputs, problem)
 
     # perform factor fixing
     fixed_factors = factor_fixing(Si)
