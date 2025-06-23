@@ -5,7 +5,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sugar_model import SugarModel
 from modify_pawn import modified_analyze # Import the modified analyze function
-import gc
+
+# by Alex
+import concurrent.futures # for parallel processing
+import gc # for garbage collection
 
 STEPS = 100  # number of steps to run the model for each parameter set
 
@@ -31,15 +34,25 @@ def hyperlatin_sample(problem, N):
     return input_space
 
 
+def run_single_input(x):
+    results = [run_model(*x) for _ in range(10)]
+    avg_result = sum(results) / len(results)
+    return (x[0], x[1], avg_result)  # return lambda, alpha, and average result
+  
+
 def model_revaluation(input_space):
-    """Evaluate the model with the given input space.
-    input_space: array of parameter samples"""
+    """Evaluate the model with the given input space."""
     outputs = []
-    for i, x in enumerate(input_space):
-        results = [run_model(*x) for j in range(10)]  # run each model 10 times for stochasticity
-        avg_result = sum(results) / len(results)  # get the average output out of 10 simulations
-        outputs.append(avg_result)
-        print(f"Sample {i+1}: lambda={x[0]}, alpha={x[1]}, total_sugar={avg_result}")
+
+    print(f"Starting parallel model revaluation on {len(input_space)} samples...")
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        futures = [executor.submit(run_single_input, x) for x in input_space]
+        
+        for i, future in enumerate(concurrent.futures.as_completed(futures)):
+            lambda_, alpha, avg_result = future.result()
+            outputs.append(avg_result)
+            print(f"Sample {i+1}: lambda={lambda_}, alpha={alpha}, total_sugar={avg_result}")
+
     return np.array(outputs)
 
 

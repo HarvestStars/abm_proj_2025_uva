@@ -162,6 +162,45 @@ class SugarModel(Model):
                         stats[f"{agent_type}_cooperators"] += 1
         
         return stats
+    
+    def clean(self):
+        """Clean up references to break potential circular references and help GC"""
+        print("Cleaning SugarModel...")
+
+        # clear agents and their references
+        if hasattr(self, 'agents'):
+            for agent in self.agents:
+                if hasattr(agent, 'model'):
+                    agent.model = None  # If agent has reverse model reference
+                if hasattr(agent, 'grid'):
+                    agent.grid = None  # Clear agent's reference to grid
+            self.agents.clear()
+
+        # Clear grid and property layer
+        if hasattr(self, 'grid'):
+            del self.grid
+            self.grid = None
+        
+        if hasattr(self, 'sugar_layer'):
+            self.sugar_layer = None
+
+        # Clear datacollector's closure-held model references
+        if hasattr(self, 'datacollector'):
+            self.datacollector.model_reporters.clear()
+            self.datacollector.agent_reporters.clear()
+            self.datacollector = None
+
+        # Clear sugar grid
+        if hasattr(self, 'grid_sugar'):
+            self.grid_sugar = None
+
+        # Clear remaining attributes
+        self.schedule = None
+        self.random = None
+        self.running = False
+
+        print("SugarModel cleaned.")
+
 
 # Test the model dimensions
 if __name__ == '__main__':
