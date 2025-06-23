@@ -2,6 +2,25 @@ from mesa import Agent
 import numpy as np
 
 class SugarAgent_Neutral(Agent):
+    
+    def __init__(self, model, agent_type="neutral", alpha=0.0, is_cooperator=False):
+        # type 1: 研究进取型，但是固定其他两个， 进取型的alpha范围 [0.1, 10.0]
+        # type 2: 研究保守型，但是固定其他两个， 保守型的alpha范围 [-10.0, -0.1]
+
+        assert agent_type in ["risk_averse", "risk_seeking"], "别动中立型"
+
+        if agent_type == "risk_averse":
+            # alpha 针对 进取型
+            # 其他两个不变，但是保守性alpha 被覆盖
+
+        elif agent_type == "risk_seeking":
+            # alpha 针对 保守型
+            # 其他两个不变，但是进取性alpha 被覆盖
+
+        else:
+            
+        
+    
     def __init__(self, model, agent_type="neutral", alpha=0.0, is_cooperator=False):
         super().__init__(model)
         self.sugar_level = 0
