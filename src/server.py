@@ -68,16 +68,49 @@ def get_sugar_map_dimensions():
     height, width = sugar_distribution.shape  # Note: numpy gives (rows, cols) = (height, width)
     return width, height
 
-
 ACTUAL_WIDTH, ACTUAL_HEIGHT = get_sugar_map_dimensions()
 print(f"Sugar map dimensions: {ACTUAL_WIDTH} x {ACTUAL_HEIGHT}")
 
-# Model parameters
+# Model parameters - simplified without Select widget
 model_params = {
-    "num_agents": Slider("Number of Agents", value=100, min=50, max=200, step=10),
+    "num_agents": Slider("Number of Agents", value=90, min=30, max=180, step=30),
     "lambda_param": Slider("Lambda (Logit Noise)", value=1.0, min=0.1, max=50.0, step=0.5),
     "cooperation_rate": Slider("Cooperation Rate", value=0.3, min=0.0, max=0.8, step=0.05),
+    "research_mode": "balanced",  # Simple string default
+    "research_alpha": Slider("Research Alpha", value=1.0, min=-10.0, max=10.0, step=0.5),
 }
+
+# Custom component to show research mode info
+@solara.component
+def ResearchModeInfo(model):
+    update_counter.get()
+    
+    if hasattr(model, 'value'):
+        current_model = model.value
+    else:
+        current_model = model
+    
+    research_mode = getattr(current_model, 'research_mode', 'balanced')
+    research_alpha = getattr(current_model, 'research_alpha', None)
+    
+    with solara.Card("Research Configuration"):
+        solara.Markdown(f"**Mode:** {research_mode}")
+        
+        if research_mode == "balanced":
+            solara.Markdown("All agent types use default alpha values:")
+            solara.Markdown("- Risk Averse: α = -1.0")
+            solara.Markdown("- Neutral: α = 0.0")
+            solara.Markdown("- Risk Seeking: α = 1.0")
+        elif research_mode == "risk_seeking":
+            solara.Markdown("Studying Risk-Seeking agents:")
+            solara.Markdown(f"- Risk Seeking: α = {research_alpha}")
+            solara.Markdown("- Risk Averse: α = -1.0 (fixed)")
+            solara.Markdown("- Neutral: α = 0.0 (fixed)")
+        elif research_mode == "risk_averse":
+            solara.Markdown("Studying Risk-Averse agents:")
+            solara.Markdown(f"- Risk Averse: α = {research_alpha}")
+            solara.Markdown("- Risk Seeking: α = 1.0 (fixed)")
+            solara.Markdown("- Neutral: α = 0.0 (fixed)")
 
 # Custom histogram for sugar levels by agent type
 @solara.component
@@ -154,6 +187,41 @@ def SugarLevelByTypeHistogram(model):
     
     return solara.FigureMatplotlib(fig)
 
+# Alpha distribution component
+@solara.component
+def AlphaDistribution(model):
+    update_counter.get()
+    fig = Figure(figsize=(10, 6))
+    ax = fig.subplots()
+    
+    # Collect alpha values by agent type
+    risk_averse_alphas = [agent.alpha for agent in model.agents if hasattr(agent, 'agent_type') and agent.agent_type == "risk_averse"]
+    neutral_alphas = [agent.alpha for agent in model.agents if hasattr(agent, 'agent_type') and agent.agent_type == "neutral"]
+    risk_seeking_alphas = [agent.alpha for agent in model.agents if hasattr(agent, 'agent_type') and agent.agent_type == "risk_seeking"]
+    
+    # Create histograms
+    bins = np.linspace(-10, 10, 41)
+    
+    if risk_averse_alphas:
+        ax.hist(risk_averse_alphas, bins=bins, alpha=0.7, color='blue', label=f'Risk Averse (n={len(risk_averse_alphas)})')
+    if neutral_alphas:
+        ax.hist(neutral_alphas, bins=bins, alpha=0.7, color='green', label=f'Neutral (n={len(neutral_alphas)})')
+    if risk_seeking_alphas:
+        ax.hist(risk_seeking_alphas, bins=bins, alpha=0.7, color='red', label=f'Risk Seeking (n={len(risk_seeking_alphas)})')
+    
+    ax.set_title("Alpha Distribution by Agent Type")
+    ax.set_xlabel("Alpha Value")
+    ax.set_ylabel("Count")
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    
+    # Add vertical lines for default values
+    ax.axvline(x=-1.0, color='blue', linestyle='--', alpha=0.5)
+    ax.axvline(x=0.0, color='green', linestyle='--', alpha=0.5)
+    ax.axvline(x=1.0, color='red', linestyle='--', alpha=0.5)
+    
+    return solara.FigureMatplotlib(fig)
+
 # Gini coefficient over time component
 @solara.component
 def GiniCoefficientPlot(model):
@@ -193,25 +261,46 @@ def CooperationStats(model):
             'risk_seeking_cooperators': 0
         }
     
-    # Cooperators by type
+    # Get total counts by type
+    type_counts = model.get_agent_type_counts()
+    
+    # Cooperators by type with total counts
     types = ['Risk Averse', 'Neutral', 'Risk Seeking']
     cooperator_counts = [
         coop_stats.get('risk_averse_cooperators', 0),
         coop_stats.get('neutral_cooperators', 0),
         coop_stats.get('risk_seeking_cooperators', 0)
     ]
+    total_counts = [
+        type_counts.get('risk_averse', 0),
+        type_counts.get('neutral', 0),
+        type_counts.get('risk_seeking', 0)
+    ]
     colors = ['blue', 'green', 'red']
     
-    bars = ax1.bar(types, cooperator_counts, color=colors, alpha=0.7)
-    ax1.set_title("Cooperators by Risk Type")
-    ax1.set_ylabel("Number of Cooperators")
+    # Create grouped bar chart
+    x = np.arange(len(types))
+    width = 0.35
+    
+    bars1 = ax1.bar(x - width/2, cooperator_counts, width, label='Cooperators', color=colors, alpha=0.7)
+    bars2 = ax1.bar(x + width/2, total_counts, width, label='Total', color=colors, alpha=0.3)
+    
+    ax1.set_title("Agent Counts by Risk Type")
+    ax1.set_ylabel("Number of Agents")
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(types)
+    ax1.legend()
     ax1.tick_params(axis='x', rotation=45)
     
     # Add value labels on bars
-    for bar, count in zip(bars, cooperator_counts):
+    for bar, count in zip(bars1, cooperator_counts):
         if count > 0:
             ax1.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.1, 
-                    str(count), ha='center', va='bottom')
+                    str(count), ha='center', va='bottom', fontsize=8)
+    for bar, count in zip(bars2, total_counts):
+        if count > 0:
+            ax1.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.1, 
+                    str(count), ha='center', va='bottom', fontsize=8)
     
     # Cooperation rate over time
     if hasattr(model.datacollector, 'model_vars'):
@@ -244,6 +333,9 @@ def create_model_with_fixed_dimensions(**kwargs):
     print(f"Created model with grid dimensions: {model.grid.width} x {model.grid.height}")
     print(f"Sugar map dimensions: {model.grid_sugar.shape}")
     print(f"Number of agents: {len(model.agents)}")
+    print(f"Research mode: {model.research_mode}")
+    if model.research_mode != "balanced":
+        print(f"Research alpha: {model.research_alpha}")
     
     return model
 
@@ -253,14 +345,16 @@ model = create_model_with_fixed_dimensions()
 page = SolaraViz(
     model,
     components=[
+        ResearchModeInfo,
         sugarscape_space,
         make_plot_component("TotalSugar"),
         SugarLevelByTypeHistogram,
+        AlphaDistribution,
         GiniCoefficientPlot,
         CooperationStats,
     ],
     model_params=model_params,
-    name="Enhanced Sugarscape ABM with Risk & Cooperation",
+    name="Enhanced Sugarscape ABM with Risk Preferences",
     play_interval=200,
 )
 

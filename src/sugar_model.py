@@ -14,18 +14,24 @@ def read_sugar_map():
 
 class SugarModel(Model):
     def __init__(self, width=None, height=None, num_agents=100, lambda_param=1.0, 
-                 cooperation_rate=0.3, alpha_range=(-2, 2), **kwargs):
-        """
-        Initialize the Sugar model with risk preferences and cooperation
+                 cooperation_rate=0.3, alpha_range=(-2, 2), 
+                 research_mode="balanced", research_alpha=None, **kwargs):
         
-        COMPLETELY IGNORE width/height parameters - ALWAYS use sugar map dimensions
-        """
+        # For select research_mode, convert to string if necessary
+        try:
+            research_mode = research_mode.value
+            print("Extracted .value from research_mode")
+        except Exception:
+            print("Used research_mode as-is (already a string)")
+
         super().__init__()
         
         # Model parameters
         self.lambda_param = lambda_param
         self.cooperation_rate = cooperation_rate
         self.alpha_range = alpha_range
+        self.research_mode = research_mode
+        self.research_alpha = research_alpha
         
         # CRITICAL FIX: Always read sugar map first and use ITS dimensions
         self.grid_sugar = read_sugar_map()
@@ -52,15 +58,56 @@ class SugarModel(Model):
         self.sugar_layer.set_cells(self.grid_sugar)
         self.grid.add_property_layer(self.sugar_layer)
         
-        # Create agents - ensure we don't create more agents than the grid can reasonably hold
+        # Create agents based on research mode
         max_possible_agents = actual_width * actual_height
-        safe_num_agents = min(num_agents, max_possible_agents // 3)  # Use at most 1/3 of the grid
+        safe_total_agents = min(num_agents, max_possible_agents // 3)
         
-        print(f"Creating {safe_num_agents} agents (requested: {num_agents})")
-        
-        sa.SugarAgent_Neutral.create_agents(self, safe_num_agents)
-        # sa.SugarAgent_Riskseeking.create_agents(self, safe_num_agents)
-        # sa.SugarAgent_Aversion.create_agents(self, safe_num_agents)
+        print(f"Creating {safe_total_agents} agents (requested: {num_agents})")
+        print(f"Research mode: {research_mode}")
+
+
+        if research_mode == "balanced":
+            # Equal distribution of all types with default alphas
+            agents_per_type = safe_total_agents // 3
+            remaining = safe_total_agents - (agents_per_type * 3)
+            
+            sa.SugarAgent_Neutral.create_agents(self, agents_per_type)
+            sa.SugarAgent_Riskseeking.create_agents(self, agents_per_type)
+            sa.SugarAgent_Aversion.create_agents(self, agents_per_type + remaining)
+            
+        elif research_mode == "risk_seeking":
+            # Study risk-seeking agents with variable alpha
+            agents_per_type = safe_total_agents // 3
+            remaining = safe_total_agents - (agents_per_type * 3)
+            
+            # Fixed types
+            sa.SugarAgent_Neutral.create_agents(self, agents_per_type)
+            sa.SugarAgent_Aversion.create_agents(self, agents_per_type)
+            
+            # Variable risk-seeking
+            sa.SugarAgent_Riskseeking.create_agents(
+                self, 
+                agents_per_type + remaining,
+                alpha_values=research_alpha
+            )
+            
+        elif research_mode == "risk_averse":
+            # Study risk-averse agents with variable alpha
+            agents_per_type = safe_total_agents // 3
+            remaining = safe_total_agents - (agents_per_type * 3)
+            
+            # Fixed types
+            sa.SugarAgent_Neutral.create_agents(self, agents_per_type)
+            sa.SugarAgent_Riskseeking.create_agents(self, agents_per_type)
+            
+            # Variable risk-averse
+            sa.SugarAgent_Aversion.create_agents(
+                self, 
+                agents_per_type + remaining,
+                alpha_values=research_alpha
+            )
+        else:
+            raise ValueError(f"Unknown research_mode: {research_mode}")
 
         # Place agents randomly
         for agent in self.agents:
@@ -200,36 +247,3 @@ class SugarModel(Model):
         self.running = False
 
         print("SugarModel cleaned.")
-
-
-# Test the model dimensions
-if __name__ == '__main__':
-    print("Testing model creation with various parameters...")
-
-    MC_TEST_REPEAT = 10  # Number of Monte Carlo tests to run
-    Parameters_lambda = [1, 2, 3, 4, 1000]
-    Parameters_alpha = [-2, -1, 0, 1, 2]
-    
-    # 构造 Parameters_lambda 与 Parameters_alpha 的笛卡尔积
-    param_combinations = [(l, a) for l in Parameters_lambda for a in Parameters_alpha]
-
-    for lambda_param, alpha in param_combinations:
-
-        for i in range(MC_TEST_COUNT := 3):
-            # Test 1: Default parameters
-            model1 = SugarModel()
-            print(f"Test 1 - Grid: {model1.grid.width}x{model1.grid.height}")
-            for i in range(10):
-                model1.step()
-            model1.datacollector.get_model_vars_dataframe().to_csv(f"./{lambda_param}/test1_results_{i}.csv")
-            
-
-    # # Test 2: With different width/height (should be ignored)
-    # model2 = SugarModel(width=20, height=30)
-    # print(f"Test 2 - Grid: {model2.grid.width}x{model2.grid.height}")
-    
-    # # Test 3: With Mesa parameters (should be ignored)
-    # model3 = SugarModel(width=10, height=10, num_agents=50)
-    # print(f"Test 3 - Grid: {model3.grid.width}x{model3.grid.height}")
-    
-    # print("All tests should show the same grid dimensions (50x48)!")
