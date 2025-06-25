@@ -31,19 +31,21 @@ def agent_portrayal(agent):
     color_intensity = 0.3 + 0.7 * sugar_norm
     final_color = tuple(c * color_intensity for c in base_color)
     
-    # Size based on cooperation status
-    if hasattr(agent, 'is_cooperator'):
-        size = 12 if agent.is_cooperator else 8
-        marker = "s" if agent.is_cooperator else "o"  # Square for cooperators, circle for others
+    # Set marker size and type based on sugar level
+    min_size, max_size = 6, 50
+    size = int(min_size + (max_size - min_size) * sugar_norm)
+
+    if getattr(agent, "is_cooperator", False):
+        marker = "s"  # square
     else:
-        size = 8
-        marker = "o"
+        marker = "o"  # circle
     
     return {
         "marker": marker, 
         "color": final_color, 
         "size": size,
         "alpha": 0.8
+        # "tooltip": f"ID:{agent.unique_id}, sugar:{sugar_level}",
     }
 
 # Property layer portrayal for sugar field
@@ -73,9 +75,15 @@ print(f"Sugar map dimensions: {ACTUAL_WIDTH} x {ACTUAL_HEIGHT}")
 
 # Model parameters - simplified without Select widget
 model_params = {
-    "num_agents": Slider("Number of Agents", value=90, min=30, max=180, step=30),
-    "lambda_param": Slider("Lambda (Logit Noise)", value=1.0, min=0.1, max=50.0, step=0.5),
-    "cooperation_rate": Slider("Cooperation Rate", value=0.3, min=0.0, max=0.8, step=0.05),
+    "num_agents": Slider("Number of Agents", value=90, min=30, max=300, step=30),
+    "lambda_param": Slider("Lambda (Logit Noise)", value=1.0, min=0.1, max=1000.0, step=0.5),
+    "cooperation_rate": Slider("Cooperation Rate", value=0.3, min=0.0, max=1.0, step=0.05),
+    "cooperation_threshold": Slider("Cooperation Threshold", value=1, min=1, max=8, step=1),
+    "feedback_per_step_D": Slider("Feedback per Step (D)", value=1, min=1, max=10.0, step=0.5),
+    "max_sugar_per_cell": Slider("Max Sugar per Cell", value=4, min=4, max=10, step=1),
+    "consume_per_step": Slider("Consume per Step", value=1, min=1, max=4, step=1),
+    "consume_proportion": Slider("Consume Proportion", value=0.1, min=0.1, max=1.0, step=0.05),
+    
     "research_mode": "balanced",  # Simple string default
     "research_alpha": Slider("Research Alpha", value=1.0, min=-10.0, max=10.0, step=0.5),
 }
@@ -98,18 +106,18 @@ def ResearchModeInfo(model):
         
         if research_mode == "balanced":
             solara.Markdown("All agent types use default alpha values:")
-            solara.Markdown("- Risk Averse: α = -1.0")
+            solara.Markdown("- Risk Averse: α = 1.0")
             solara.Markdown("- Neutral: α = 0.0")
-            solara.Markdown("- Risk Seeking: α = 1.0")
+            solara.Markdown("- Risk Seeking: α = -1.0")
         elif research_mode == "risk_seeking":
             solara.Markdown("Studying Risk-Seeking agents:")
             solara.Markdown(f"- Risk Seeking: α = {research_alpha}")
-            solara.Markdown("- Risk Averse: α = -1.0 (fixed)")
+            solara.Markdown("- Risk Averse: α = 1.0 (fixed)")
             solara.Markdown("- Neutral: α = 0.0 (fixed)")
         elif research_mode == "risk_averse":
             solara.Markdown("Studying Risk-Averse agents:")
             solara.Markdown(f"- Risk Averse: α = {research_alpha}")
-            solara.Markdown("- Risk Seeking: α = 1.0 (fixed)")
+            solara.Markdown("- Risk Seeking: α = -1.0 (fixed)")
             solara.Markdown("- Neutral: α = 0.0 (fixed)")
 
 # Custom histogram for sugar levels by agent type
@@ -137,6 +145,7 @@ def SugarLevelByTypeHistogram(model):
     all_sugar_values = risk_averse_sugar + neutral_sugar + risk_seeking_sugar
     if all_sugar_values:
         max_sugar = max(all_sugar_values)
+        print(f"Max sugar level across all agents: {max_sugar}")
         bins = range(0, max_sugar + 5, 2) if max_sugar > 0 else [0, 1, 2]
         
         if risk_averse_sugar:
