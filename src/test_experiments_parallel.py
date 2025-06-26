@@ -47,7 +47,7 @@ def run_single_simulation(lambda_param, alpha, i, steps):
             consume_per_step=1,
             consume_proportion_mode=False,
             alpha_range=alpha_range,
-            agent_type="balanced"
+            research_mode="balanced"
         )
         
         for step in range(steps):
@@ -129,7 +129,7 @@ def run_alpha_sensitivity_analysis(steps=200):
                     lambda_param=FIXED_LAMBDA,
                     cooperation_rate=FIXED_COOPERATION,
                     alpha_range=alpha_range,
-                    agent_type="balanced"
+                    research_mode="balanced"
                 )
                 
                 # Run simulation
