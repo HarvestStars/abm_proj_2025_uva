@@ -68,7 +68,7 @@ def run_mixed_parameter_testing(steps=200):
                     lambda_param=lambda_param,
                     cooperation_rate=0.3,
                     alpha_range=alpha_range,
-                    agent_type="balanced"
+                    research_mode="balanced"
                 )
                 
                 print(f"  Run {i}: Grid {model.grid.width}x{model.grid.height}")
@@ -124,7 +124,7 @@ def run_alpha_sensitivity_analysis(steps=200):
                     lambda_param=FIXED_LAMBDA,
                     cooperation_rate=FIXED_COOPERATION,
                     alpha_range=alpha_range,
-                    agent_type="balanced"
+                    research_mode="balanced"
                 )
                 
                 # Run simulation
