@@ -171,7 +171,7 @@ class SugarAgent_Riskseeking(Agent):
         available_positions = []
         for pos in neighbors:
             cell_contents = self.model.grid.get_cell_list_contents([pos])
-            if len(cell_contents) == 0 or pos == self.pos:
+            if len(cell_contents) < 4 or pos == self.pos:  # multigrid means they can overlap on same cell
                 available_positions.append(pos)
         
         if not available_positions:

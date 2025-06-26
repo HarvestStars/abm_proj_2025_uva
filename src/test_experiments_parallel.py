@@ -40,7 +40,10 @@ def run_single_simulation(lambda_param, alpha, i, steps):
         model = SugarModel(
             num_agents=200,
             lambda_param=lambda_param,
-            cooperation_rate=0.3,
+            cooperation_rate=1.0,
+            max_sugar_per_cell=10,
+            consume_per_step=1,
+            consume_proportion_mode=False,
             alpha_range=alpha_range,
             agent_type="balanced"
         )
