@@ -11,6 +11,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
 from sugar_model import SugarModel
+import concurrent.futures
+from pathlib import Path
 
 def test_model_dimensions():
     """Test that model uses correct dimensions from sugar map"""
@@ -30,6 +32,32 @@ def test_model_dimensions():
     
     print("All tests should show the same grid dimensions (50x48)!")
 
+def run_single_simulation(lambda_param, alpha, i, steps):
+    from sugar_model import SugarModel
+
+    try:
+        alpha_range = (alpha - 0.5, alpha + 0.5)
+        model = SugarModel(
+            num_agents=200,
+            lambda_param=lambda_param,
+            cooperation_rate=0.3,
+            alpha_range=alpha_range,
+            agent_type="balanced"
+        )
+        
+        for step in range(steps):
+            model.step()
+
+        results = model.datacollector.get_model_vars_dataframe()
+        base_output_dir = Path("output") / "mixed_parameter_results"
+        lambda_dir = base_output_dir / f"lambda_{lambda_param}"
+        lambda_dir.mkdir(parents=True, exist_ok=True)
+        filename = lambda_dir / f"test1_results_steps_{steps}_alpha_{alpha}_run_{i}.csv"
+        results.to_csv(filename)
+        print(f"  [λ={lambda_param}, α={alpha}, run={i}] saved: {filename.name}")
+    except Exception as e:
+        print(f"  [λ={lambda_param}, α={alpha}, run={i}] error: {e}")
+
 def run_mixed_parameter_testing(steps=200):
     """Option 1: Mixed parameter testing (lambda + alpha combinations)"""
     print("Mixed Parameter Testing (Lambda + Alpha combinations)")
@@ -40,53 +68,28 @@ def run_mixed_parameter_testing(steps=200):
     Parameters_alpha = [0]
     # Parameters_alpha = [-2, -1, 0, 1, 2]
     
-    # Create Cartesian product
     param_combinations = [(l, a) for l in Parameters_lambda for a in Parameters_alpha]
-    
     print(f"Parameter combinations: {len(param_combinations)}")
     print(f"MC repetitions per combination: {MC_TEST_REPEAT}")
     print(f"Total runs: {len(param_combinations) * MC_TEST_REPEAT}")
-
-    # Create base output directory
+    
+    # Prepare output directory
     base_output_dir = Path("output") / "mixed_parameter_results"
     base_output_dir.mkdir(parents=True, exist_ok=True)
 
+    # Build all jobs
+    jobs = []
     for lambda_param, alpha in param_combinations:
-        print(f"\nTesting λ={lambda_param}, α={alpha}")
-        
-        # Create directory for this lambda value
-        lambda_dir = base_output_dir / f"lambda_{lambda_param}"
-        lambda_dir.mkdir(exist_ok=True)
-
         for i in range(MC_TEST_REPEAT):
-            try:
-                # Use the parameters
-                alpha_range = (alpha - 0.5, alpha + 0.5)
-                
-                model = SugarModel(
-                    num_agents=100,
-                    lambda_param=lambda_param,
-                    cooperation_rate=0.3,
-                    alpha_range=alpha_range,
-                    agent_type="balanced"
-                )
-                
-                print(f"  Run {i}: Grid {model.grid.width}x{model.grid.height}")
-                
-                # Run simulation
-                for step in range(steps):
-                    model.step()
-                
-                # Save results
-                results = model.datacollector.get_model_vars_dataframe()
-                filename = f"test1_results_steps_{steps}_alpha_{alpha}_run_{i}.csv"
-                results.to_csv(lambda_dir / filename)
-                
-                print(f"    Saved: {filename}")
-                
-            except Exception as e:
-                print(f"    Error in run {i}: {e}")
-                continue
+            jobs.append((lambda_param, alpha, i, steps))
+    
+    # Run jobs in parallel
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        futures = [executor.submit(run_single_simulation, *job) for job in jobs]
+        concurrent.futures.wait(futures)
+
+    print("All simulations completed.")
+
 
 def run_alpha_sensitivity_analysis(steps=200):
     """Option 2: Alpha sensitivity analysis (main research focus)"""

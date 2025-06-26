@@ -281,7 +281,7 @@ class SugarAgent_Riskseeking(Agent):
                 alpha_val = 1.0
             
             # Ensure alpha is within valid range
-            assert 0.1 <= alpha_val <= 10.0, f"Risk-seeking alpha must be in [0.1, 10.0], got: {alpha_val}"
+            assert -10.0 <= alpha_val <= -0.1, f"Risk-seeking alpha must be in [-10.0, -0.1], got: {alpha_val}"
 
             agent = cls(model, alpha=alpha_val, consume_per_step=consume_per_step, consume_proportion=consume_proportion, consume_prop_mode=consume_prop_mode, is_cooperator=is_coop)
             agents.append(agent)
@@ -439,7 +439,7 @@ class SugarAgent_Aversion(Agent):
                 alpha_val = -1.0
             
             # Ensure alpha is within valid range
-            assert -10.0 <= alpha_val <= -0.1, f"Risk-averse alpha must be in [-10.0, -0.1], got: {alpha_val}"
+            assert 0.1 <= alpha_val <= 10.0, f"Risk-averse alpha must be in [0.1, 10.0], got: {alpha_val}"
 
             agent = cls(model, alpha=alpha_val, is_cooperator=is_coop, consume_per_step=consume_per_step, consume_proportion=consume_proportion, consume_prop_mode=consume_prop_mode)
             agents.append(agent)

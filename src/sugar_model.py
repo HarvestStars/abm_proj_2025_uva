@@ -17,11 +17,11 @@ class SugarModel(Model):
                  num_agents=100, 
                  lambda_param=1.0, 
 
-                 cooperation_rate=1.0,# for agent cooperation
-                 cooperation_threshold=2,# for agent cooperation
-                 feedback_per_step_D=3, # for agent feedback and sugar growth 
+                 cooperation_rate=0.5, # for agent cooperation
+                 cooperation_threshold=3,# for agent cooperation
+                 feedback_per_step_D=4, # for agent feedback and sugar growth 
                  max_sugar_per_cell=4,  # for cell sugar maximum
-                 alpha_range=(-2, 2),
+                 alpha_range=(-2, 2), # not used, but kept for compatibility
 
                  consume_per_step=1,# for agent per step consumption
                  consume_proportion=0.1, # for agent consumption proportion
@@ -97,17 +97,20 @@ class SugarModel(Model):
             remaining = safe_total_agents - (agents_per_type * 3)
             
             sa.SugarAgent_Neutral.create_agents(self, agents_per_type, consume_per_step=consume_per_step, consume_proportion=consume_proportion, consume_prop_mode=consume_proportion_mode)
-            sa.SugarAgent_Riskseeking.create_agents(self, agents_per_type, consume_per_step=consume_per_step, consume_proportion=consume_proportion, consume_prop_mode=consume_proportion_mode)
-            sa.SugarAgent_Aversion.create_agents(self, agents_per_type + remaining, consume_per_step=consume_per_step, consume_proportion=consume_proportion, consume_prop_mode=consume_proportion_mode)
+            sa.SugarAgent_Riskseeking.create_agents(self, agents_per_type, alpha_values=-1.0, consume_per_step=consume_per_step, consume_proportion=consume_proportion, consume_prop_mode=consume_proportion_mode)
+            sa.SugarAgent_Aversion.create_agents(self, agents_per_type + remaining, alpha_values=1.0, consume_per_step=consume_per_step, consume_proportion=consume_proportion, consume_prop_mode=consume_proportion_mode)
 
         elif research_mode == "risk_seeking":
+            if research_alpha is None or research_alpha >= 0:
+                research_alpha = -1.0  # Default risk-seeking alpha if not specified or invalid
+
             # Study risk-seeking agents with variable alpha
             agents_per_type = safe_total_agents // 3
             remaining = safe_total_agents - (agents_per_type * 3)
             
             # Fixed types
             sa.SugarAgent_Neutral.create_agents(self, agents_per_type, consume_per_step=consume_per_step, consume_proportion=consume_proportion, consume_prop_mode=consume_proportion_mode)
-            sa.SugarAgent_Aversion.create_agents(self, agents_per_type, consume_per_step=consume_per_step, consume_proportion=consume_proportion, consume_prop_mode=consume_proportion_mode)
+            sa.SugarAgent_Aversion.create_agents(self, agents_per_type, alpha_values=1.0, consume_per_step=consume_per_step, consume_proportion=consume_proportion, consume_prop_mode=consume_proportion_mode)
 
             # Variable risk-seeking
             sa.SugarAgent_Riskseeking.create_agents(
@@ -120,13 +123,16 @@ class SugarModel(Model):
             )
             
         elif research_mode == "risk_averse":
+            if research_alpha is None or research_alpha <= 0:
+                research_alpha = 1.0
+
             # Study risk-averse agents with variable alpha
             agents_per_type = safe_total_agents // 3
             remaining = safe_total_agents - (agents_per_type * 3)
             
             # Fixed types
             sa.SugarAgent_Neutral.create_agents(self, agents_per_type, consume_per_step=consume_per_step, consume_proportion=consume_proportion, consume_prop_mode=consume_proportion_mode)
-            sa.SugarAgent_Riskseeking.create_agents(self, agents_per_type, consume_per_step=consume_per_step, consume_proportion=consume_proportion, consume_prop_mode=consume_proportion_mode)
+            sa.SugarAgent_Riskseeking.create_agents(self, agents_per_type, alpha_values=-1.0, consume_per_step=consume_per_step, consume_proportion=consume_proportion, consume_prop_mode=consume_proportion_mode)
 
             # Variable risk-averse
             sa.SugarAgent_Aversion.create_agents(
