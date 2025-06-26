@@ -101,8 +101,8 @@ print(f"Sugar map dimensions: {ACTUAL_WIDTH} x {ACTUAL_HEIGHT}")
 
 # Model parameters - simplified without Select widget
 model_params = {
-    "num_agents": Slider("Number of Agents", value=90, min=30, max=300, step=30),
-    "lambda_param": Slider("Lambda (Logit Noise)", value=1.0, min=0.1, max=1000.0, step=0.5),
+    "num_agents": Slider("Number of Agents", value=90, min=30, max=300, step=10),
+    "lambda_param": Slider("Lambda (Logit Noise)", value=1.0, min=0.1, max=20.0, step=0.5),
     "cooperation_rate": Slider("Cooperation Rate", value=0.3, min=0.0, max=1.0, step=0.05),
     "cooperation_threshold": Slider("Cooperation Threshold", value=1, min=1, max=8, step=1),
     "feedback_per_step_D": Slider("Feedback per Step (D)", value=1, min=1, max=10.0, step=0.5),
