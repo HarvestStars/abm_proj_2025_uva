@@ -179,7 +179,11 @@ class SugarAgent_Riskseeking(Agent):
         
         utilities = np.array([self.compute_utility(pos) for pos in available_positions])
         lambda_param = getattr(self.model, 'lambda_param', 1.0)
-        exp_utilities = np.exp(lambda_param * utilities)
+
+        # exp_utilities = np.exp(lambda_param * utilities)
+        scaled_utilities = lambda_param * utilities
+        scaled_utilities -= np.max(scaled_utilities)  # prevent overflow, tricky!
+        exp_utilities = np.exp(scaled_utilities)
         
         if np.any(np.isinf(exp_utilities)) or np.sum(exp_utilities) == 0:
             max_idx = np.argmax(utilities)
