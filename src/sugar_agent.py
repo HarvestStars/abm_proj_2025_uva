@@ -1,10 +1,19 @@
 from mesa import Agent
 import numpy as np
 
+
 class SugarAgent_Neutral(Agent):
     """Risk-neutral agents with linear utility function"""
 
-    def __init__(self, model, alpha=0.0, consume_per_step=1, consume_proportion=0.1, consume_prop_mode=False, is_cooperator=False):
+    def __init__(
+        self,
+        model,
+        alpha=0.0,
+        consume_per_step=1,
+        consume_proportion=0.1,
+        consume_prop_mode=True,
+        is_cooperator=False,
+    ):
         super().__init__(model)
         self.sugar_level = 0
         self.agent_type = "neutral"
@@ -13,8 +22,12 @@ class SugarAgent_Neutral(Agent):
         self.consume_per_step = consume_per_step
         self.consume_proportion = consume_proportion
         self.consume_prop_mode = consume_prop_mode
-        assert isinstance(consume_per_step, (int)), "consume_per_step must be a number (int or float)"
-        print(f"Creating neutral agent with alpha={self.alpha}, consume_per_step={self.consume_per_step}, consume_proportion={self.consume_proportion}, consume_prop_mode={self.consume_prop_mode}, is_cooperator={self.is_cooperator}")
+        assert isinstance(
+            consume_per_step, (int)
+        ), "consume_per_step must be a number (int or float)"
+        print(
+            f"Creating neutral agent with alpha={self.alpha}, consume_per_step={self.consume_per_step}, consume_proportion={self.consume_proportion}, consume_prop_mode={self.consume_prop_mode}, is_cooperator={self.is_cooperator}"
+        )
 
     def compute_utility(self, pos):
         """Risk-neutral utility: U = sugar concentration × 10%"""
@@ -29,29 +42,30 @@ class SugarAgent_Neutral(Agent):
         neighbors = self.model.grid.get_neighborhood(
             self.pos, moore=True, include_center=True
         )
-        
+
         available_positions = []
         for pos in neighbors:
             cell_contents = self.model.grid.get_cell_list_contents([pos])
             if len(cell_contents) == 0 or pos == self.pos:
                 available_positions.append(pos)
-        
+
         if not available_positions:
             return self.pos
-        
+
         utilities = np.array([self.compute_utility(pos) for pos in available_positions])
-        lambda_param = getattr(self.model, 'lambda_param', 1.0)
+        lambda_param = getattr(self.model, "lambda_param", 1.0)
         exp_utilities = np.exp(lambda_param * utilities)
-        
+
         if np.any(np.isinf(exp_utilities)) or np.sum(exp_utilities) == 0:
             max_idx = np.argmax(utilities)
             return available_positions[max_idx]
-        
+
         probabilities = exp_utilities / np.sum(exp_utilities)
-        
+
         try:
-            selected_idx = self.random.choices(range(len(available_positions)), 
-                                             weights=probabilities)[0]
+            selected_idx = self.random.choices(
+                range(len(available_positions)), weights=probabilities
+            )[0]
             return available_positions[selected_idx]
         except (ValueError, IndexError):
             return self.random.choice(available_positions)
@@ -60,22 +74,24 @@ class SugarAgent_Neutral(Agent):
         """Cooperation phase"""
         if not self.is_cooperator:
             return
-        
+
         neighbors = self.model.grid.get_neighborhood(
             self.pos, moore=True, include_center=False
         )
-        
+
         empty_spots = []
         for pos in neighbors:
             cell_contents = self.model.grid.get_cell_list_contents([pos])
             if len(cell_contents) == 0:
                 empty_spots.append(pos)
-        
+
         if empty_spots:
             cooperation_spot = self.random.choice(empty_spots)
             x, y = cooperation_spot
             self.model.grid_sugar[x, y] = min(self.model.grid_sugar[x, y] + 1, 4)
-            self.model.sugar_layer.modify_cell(cooperation_spot, lambda v: min(v + 1, 4))
+            self.model.sugar_layer.modify_cell(
+                cooperation_spot, lambda v: min(v + 1, 4)
+            )
 
     def step(self):
         """Agent step: move, consume, cooperate"""
@@ -93,16 +109,28 @@ class SugarAgent_Neutral(Agent):
                 # Consume a fixed amount of sugar
                 sugar_consumed = min(self.consume_per_step, self.model.grid_sugar[x, y])
             self.sugar_level += sugar_consumed
-            self.model.grid_sugar[x, y] = max(0, self.model.grid_sugar[x, y] - sugar_consumed)
-            self.model.sugar_layer.modify_cell((x, y), lambda v: max(0, v - sugar_consumed))
+            self.model.grid_sugar[x, y] = max(
+                0, self.model.grid_sugar[x, y] - sugar_consumed
+            )
+            self.model.sugar_layer.modify_cell(
+                (x, y), lambda v: max(0, v - sugar_consumed)
+            )
 
         # self.cooperate()
 
     @classmethod
-    def create_agents(cls, model, num_agents, consume_per_step=1, consume_proportion=0.1, consume_prop_mode=True, fixed_alpha=None):
+    def create_agents(
+        cls,
+        model,
+        num_agents,
+        consume_per_step=1,
+        consume_proportion=0.1,
+        consume_prop_mode=True,
+        fixed_alpha=None,
+    ):
         """
         Create neutral agents
-        
+
         Parameters:
         -----------
         model : Model
@@ -116,26 +144,43 @@ class SugarAgent_Neutral(Agent):
             If None, default value 0.0 will be used
         """
         agents = []
-        cooperation_rate = getattr(model, 'cooperation_rate', 0.3)
-        print(f"Creating {num_agents} neutral agents with cooperation rate {cooperation_rate}")
+        cooperation_rate = getattr(model, "cooperation_rate", 0.3)
+        print(
+            f"Creating {num_agents} neutral agents with cooperation rate {cooperation_rate}"
+        )
         num_cooperators = int(num_agents * cooperation_rate)
-        
+
         # Neutral agents typically have alpha fixed at 0
         alpha_val = fixed_alpha if fixed_alpha is not None else 0.0
-        
+
         for i in range(num_agents):
             is_coop = i < num_cooperators
-            agent = cls(model, alpha=alpha_val, consume_per_step=consume_per_step, consume_proportion=consume_proportion, consume_prop_mode=consume_prop_mode, is_cooperator=is_coop)
+            agent = cls(
+                model,
+                alpha=alpha_val,
+                consume_per_step=consume_per_step,
+                consume_proportion=consume_proportion,
+                consume_prop_mode=consume_prop_mode,
+                is_cooperator=is_coop,
+            )
             agents.append(agent)
             model.agents.add(agent)
-        
+
         return agents
 
 
 class SugarAgent_Riskseeking(Agent):
     """Risk-seeking agents with increasing returns utility function"""
 
-    def __init__(self, model, alpha=-1.0, consume_per_step=1, consume_proportion=0.1, consume_prop_mode=False, is_cooperator=False):
+    def __init__(
+        self,
+        model,
+        alpha=-1.0,
+        consume_per_step=1,
+        consume_proportion=0.1,
+        consume_prop_mode=True,
+        is_cooperator=False,
+    ):
         super().__init__(model)
         self.sugar_level = 0
         self.agent_type = "risk_seeking"
@@ -147,11 +192,11 @@ class SugarAgent_Riskseeking(Agent):
 
     def compute_utility(self, pos):
         """
-            Risk-seeking utility:         
-            U(c) = (1 - exp(-a * c)) / a   if a != 0
-            = c                      if a == 0
+        Risk-seeking utility:
+        U(c) = (1 - exp(-a * c)) / a   if a != 0
+        = c                      if a == 0
 
-            a < 0 means risk-seeking behavior
+        a < 0 means risk-seeking behavior
         """
         x, y = pos
         c = self.model.grid_sugar[x, y]
@@ -167,33 +212,30 @@ class SugarAgent_Riskseeking(Agent):
         neighbors = self.model.grid.get_neighborhood(
             self.pos, moore=True, include_center=True
         )
-        
+
         available_positions = []
         for pos in neighbors:
             cell_contents = self.model.grid.get_cell_list_contents([pos])
-            if len(cell_contents) < 4 or pos == self.pos:  # multigrid means they can overlap on same cell
+            if len(cell_contents) == 0 or pos == self.pos:
                 available_positions.append(pos)
-        
+
         if not available_positions:
             return self.pos
-        
-        utilities = np.array([self.compute_utility(pos) for pos in available_positions])
-        lambda_param = getattr(self.model, 'lambda_param', 1.0)
 
-        # exp_utilities = np.exp(lambda_param * utilities)
-        scaled_utilities = lambda_param * utilities
-        scaled_utilities -= np.max(scaled_utilities)  # prevent overflow, tricky!
-        exp_utilities = np.exp(scaled_utilities)
-        
+        utilities = np.array([self.compute_utility(pos) for pos in available_positions])
+        lambda_param = getattr(self.model, "lambda_param", 1.0)
+        exp_utilities = np.exp(lambda_param * utilities)
+
         if np.any(np.isinf(exp_utilities)) or np.sum(exp_utilities) == 0:
             max_idx = np.argmax(utilities)
             return available_positions[max_idx]
-        
+
         probabilities = exp_utilities / np.sum(exp_utilities)
-        
+
         try:
-            selected_idx = self.random.choices(range(len(available_positions)), 
-                                             weights=probabilities)[0]
+            selected_idx = self.random.choices(
+                range(len(available_positions)), weights=probabilities
+            )[0]
             return available_positions[selected_idx]
         except (ValueError, IndexError):
             return self.random.choice(available_positions)
@@ -202,22 +244,24 @@ class SugarAgent_Riskseeking(Agent):
         """Cooperation phase"""
         if not self.is_cooperator:
             return
-        
+
         neighbors = self.model.grid.get_neighborhood(
             self.pos, moore=True, include_center=False
         )
-        
+
         empty_spots = []
         for pos in neighbors:
             cell_contents = self.model.grid.get_cell_list_contents([pos])
             if len(cell_contents) == 0:
                 empty_spots.append(pos)
-        
+
         if empty_spots:
             cooperation_spot = self.random.choice(empty_spots)
             x, y = cooperation_spot
             self.model.grid_sugar[x, y] = min(self.model.grid_sugar[x, y] + 1, 4)
-            self.model.sugar_layer.modify_cell(cooperation_spot, lambda v: min(v + 1, 4))
+            self.model.sugar_layer.modify_cell(
+                cooperation_spot, lambda v: min(v + 1, 4)
+            )
 
     def step(self):
         """Agent step: move, consume, cooperate"""
@@ -235,16 +279,29 @@ class SugarAgent_Riskseeking(Agent):
                 # Consume a fixed amount of sugar
                 sugar_consumed = min(self.consume_per_step, self.model.grid_sugar[x, y])
             self.sugar_level += sugar_consumed
-            self.model.grid_sugar[x, y] = max(0, self.model.grid_sugar[x, y] - sugar_consumed)
-            self.model.sugar_layer.modify_cell((x, y), lambda v: max(0, v - sugar_consumed))
+            self.model.grid_sugar[x, y] = max(
+                0, self.model.grid_sugar[x, y] - sugar_consumed
+            )
+            self.model.sugar_layer.modify_cell(
+                (x, y), lambda v: max(0, v - sugar_consumed)
+            )
 
         # self.cooperate()
 
     @classmethod
-    def create_agents(cls, model, num_agents, alpha_values=None, consume_per_step=1, consume_proportion=0.1, consume_prop_mode=False, random_alpha=False):
+    def create_agents(
+        cls,
+        model,
+        num_agents,
+        alpha_values=None,
+        consume_per_step=1,
+        consume_proportion=0.1,
+        consume_prop_mode=False,
+        random_alpha=False,
+    ):
         """
         Create risk-seeking agents
-        
+
         Parameters:
         -----------
         model : Model
@@ -261,12 +318,12 @@ class SugarAgent_Riskseeking(Agent):
             If True and alpha_values is None, generate random values in [0.1, 10.0]
         """
         agents = []
-        cooperation_rate = getattr(model, 'cooperation_rate', 0.3)
+        cooperation_rate = getattr(model, "cooperation_rate", 0.3)
         num_cooperators = int(num_agents * cooperation_rate)
-        
+
         for i in range(num_agents):
             is_coop = i < num_cooperators
-            
+
             # Determine alpha value
             if alpha_values is not None:
                 if isinstance(alpha_values, (int, float)):
@@ -283,21 +340,38 @@ class SugarAgent_Riskseeking(Agent):
             else:
                 # Default value
                 alpha_val = 1.0
-            
-            # Ensure alpha is within valid range
-            assert -10.0 <= alpha_val <= -0.1, f"Risk-seeking alpha must be in [-10.0, -0.1], got: {alpha_val}"
 
-            agent = cls(model, alpha=alpha_val, consume_per_step=consume_per_step, consume_proportion=consume_proportion, consume_prop_mode=consume_prop_mode, is_cooperator=is_coop)
+            # Ensure alpha is within valid range
+            assert (
+                -10.0 <= alpha_val <= -0.1
+            ), f"Risk-seeking alpha must be in [-10.0, -0.1], got: {alpha_val}"
+
+            agent = cls(
+                model,
+                alpha=alpha_val,
+                consume_per_step=consume_per_step,
+                consume_proportion=consume_proportion,
+                consume_prop_mode=consume_prop_mode,
+                is_cooperator=is_coop,
+            )
             agents.append(agent)
             model.agents.add(agent)
-        
+
         return agents
 
 
 class SugarAgent_Aversion(Agent):
     """Risk-averse agents with diminishing returns utility function"""
 
-    def __init__(self, model, alpha=1.0, consume_per_step=1, consume_proportion=0.1, consume_prop_mode=False, is_cooperator=False):
+    def __init__(
+        self,
+        model,
+        alpha=1.0,
+        consume_per_step=1,
+        consume_proportion=0.1,
+        consume_prop_mode=False,
+        is_cooperator=False,
+    ):
         super().__init__(model)
         self.sugar_level = 0
         self.agent_type = "risk_averse"
@@ -309,11 +383,11 @@ class SugarAgent_Aversion(Agent):
 
     def compute_utility(self, pos):
         """
-            Risk-adversion utility:         
-            U(c) = (1 - exp(-a * c)) / a   if a != 0
-            = c                      if a == 0
+        Risk-adversion utility:
+        U(c) = (1 - exp(-a * c)) / a   if a != 0
+        = c                      if a == 0
 
-            a > 0 means risk-averse behavior
+        a > 0 means risk-averse behavior
         """
         x, y = pos
         c = self.model.grid_sugar[x, y]
@@ -323,35 +397,36 @@ class SugarAgent_Aversion(Agent):
             utility = c
 
         return utility
-    
+
     def choose_move(self):
         """Logit model for movement decisions"""
         neighbors = self.model.grid.get_neighborhood(
             self.pos, moore=True, include_center=True
         )
-        
+
         available_positions = []
         for pos in neighbors:
             cell_contents = self.model.grid.get_cell_list_contents([pos])
             if len(cell_contents) == 0 or pos == self.pos:
                 available_positions.append(pos)
-        
+
         if not available_positions:
             return self.pos
-        
+
         utilities = np.array([self.compute_utility(pos) for pos in available_positions])
-        lambda_param = getattr(self.model, 'lambda_param', 1.0)
+        lambda_param = getattr(self.model, "lambda_param", 1.0)
         exp_utilities = np.exp(lambda_param * utilities)
-        
+
         if np.any(np.isinf(exp_utilities)) or np.sum(exp_utilities) == 0:
             max_idx = np.argmax(utilities)
             return available_positions[max_idx]
-        
+
         probabilities = exp_utilities / np.sum(exp_utilities)
-        
+
         try:
-            selected_idx = self.random.choices(range(len(available_positions)), 
-                                             weights=probabilities)[0]
+            selected_idx = self.random.choices(
+                range(len(available_positions)), weights=probabilities
+            )[0]
             return available_positions[selected_idx]
         except (ValueError, IndexError):
             return self.random.choice(available_positions)
@@ -360,22 +435,24 @@ class SugarAgent_Aversion(Agent):
         """Cooperation phase"""
         if not self.is_cooperator:
             return
-        
+
         neighbors = self.model.grid.get_neighborhood(
             self.pos, moore=True, include_center=False
         )
-        
+
         empty_spots = []
         for pos in neighbors:
             cell_contents = self.model.grid.get_cell_list_contents([pos])
             if len(cell_contents) == 0:
                 empty_spots.append(pos)
-        
+
         if empty_spots:
             cooperation_spot = self.random.choice(empty_spots)
             x, y = cooperation_spot
             self.model.grid_sugar[x, y] = min(self.model.grid_sugar[x, y] + 1, 4)
-            self.model.sugar_layer.modify_cell(cooperation_spot, lambda v: min(v + 1, 4))
+            self.model.sugar_layer.modify_cell(
+                cooperation_spot, lambda v: min(v + 1, 4)
+            )
 
     def step(self):
         """Agent step: move, consume, cooperate"""
@@ -393,16 +470,29 @@ class SugarAgent_Aversion(Agent):
                 # Consume a fixed amount of sugar
                 sugar_consumed = min(self.consume_per_step, self.model.grid_sugar[x, y])
             self.sugar_level += sugar_consumed
-            self.model.grid_sugar[x, y] = max(0, self.model.grid_sugar[x, y] - sugar_consumed)
-            self.model.sugar_layer.modify_cell((x, y), lambda v: max(0, v - sugar_consumed))
+            self.model.grid_sugar[x, y] = max(
+                0, self.model.grid_sugar[x, y] - sugar_consumed
+            )
+            self.model.sugar_layer.modify_cell(
+                (x, y), lambda v: max(0, v - sugar_consumed)
+            )
 
         # self.cooperate()
 
     @classmethod
-    def create_agents(cls, model, num_agents, alpha_values=None, consume_per_step=1, consume_proportion=0.1, consume_prop_mode=False, random_alpha=False):
+    def create_agents(
+        cls,
+        model,
+        num_agents,
+        alpha_values=None,
+        consume_per_step=1,
+        consume_proportion=0.1,
+        consume_prop_mode=False,
+        random_alpha=False,
+    ):
         """
         Create risk-averse agents
-        
+
         Parameters:
         -----------
         model : Model
@@ -419,12 +509,12 @@ class SugarAgent_Aversion(Agent):
             If True and alpha_values is None, generate random values in [-10.0, -0.1]
         """
         agents = []
-        cooperation_rate = getattr(model, 'cooperation_rate', 0.3)
+        cooperation_rate = getattr(model, "cooperation_rate", 0.3)
         num_cooperators = int(num_agents * cooperation_rate)
-        
+
         for i in range(num_agents):
             is_coop = i < num_cooperators
-            
+
             # Determine alpha value
             if alpha_values is not None:
                 if isinstance(alpha_values, (int, float)):
@@ -441,12 +531,21 @@ class SugarAgent_Aversion(Agent):
             else:
                 # Default value
                 alpha_val = -1.0
-            
-            # Ensure alpha is within valid range
-            assert 0.1 <= alpha_val <= 10.0, f"Risk-averse alpha must be in [0.1, 10.0], got: {alpha_val}"
 
-            agent = cls(model, alpha=alpha_val, is_cooperator=is_coop, consume_per_step=consume_per_step, consume_proportion=consume_proportion, consume_prop_mode=consume_prop_mode)
+            # Ensure alpha is within valid range
+            assert (
+                0.1 <= alpha_val <= 10.0
+            ), f"Risk-averse alpha must be in [0.1, 10.0], got: {alpha_val}"
+
+            agent = cls(
+                model,
+                alpha=alpha_val,
+                is_cooperator=is_coop,
+                consume_per_step=consume_per_step,
+                consume_proportion=consume_proportion,
+                consume_prop_mode=consume_prop_mode,
+            )
             agents.append(agent)
             model.agents.add(agent)
-        
+
         return agents

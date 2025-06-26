@@ -222,7 +222,7 @@ def print_alpha_summary(alpha_df):
     for _, row in alpha_stats.iterrows():
         print(f"{row['alpha']:5.1f}\t{row['mean']:8.1f}\t{row['std']:7.1f}\t{row['count']:4.0f}")
 
-def run_full_experiment(steps=200):
+def run_full_experiment(steps=1000):
     """Run the complete experimental suite"""
     print("SUGARSCAPE MODEL TESTING SUITE")
     print("=" * 60)
@@ -252,5 +252,4 @@ def run_full_experiment(steps=200):
     print("- For full experiment: Set MC_RUNS_PER_ALPHA=100, ALPHA_VALUES=21 points")
 
 if __name__ == "__main__":
-    # run_full_experiment()
-    run_mixed_parameter_testing(steps=1000)
+    run_full_experiment()

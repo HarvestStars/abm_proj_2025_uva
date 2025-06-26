@@ -164,6 +164,13 @@ class SugarModel(Model):
                 "RiskAverseAvgSugar": lambda m: np.mean([a.sugar_level for a in m.agents if hasattr(a, 'agent_type') and a.agent_type == "risk_averse"]) if any(hasattr(a, 'agent_type') and a.agent_type == "risk_averse" for a in m.agents) else 0,
                 "NeutralAvgSugar": lambda m: np.mean([a.sugar_level for a in m.agents if hasattr(a, 'agent_type') and a.agent_type == "neutral"]) if any(hasattr(a, 'agent_type') and a.agent_type == "neutral" for a in m.agents) else 0,
                 "RiskSeekingAvgSugar": lambda m: np.mean([a.sugar_level for a in m.agents if hasattr(a, 'agent_type') and a.agent_type == "risk_seeking"]) if any(hasattr(a, 'agent_type') and a.agent_type == "risk_seeking" for a in m.agents) else 0,
+                
+                "RiskAverseCoopSugar": lambda m: sum(a.sugar_level for a in m.agents if getattr(a, "agent_type", None) == "risk_averse" and getattr(a, "is_cooperator", False)),
+                "NeutralCoopSugar": lambda m: sum(a.sugar_level for a in m.agents if getattr(a, "agent_type", None) == "neutral" and getattr(a, "is_cooperator", False)),
+                "RiskSeekingCoopSugar": lambda m: sum(a.sugar_level for a in m.agents if getattr(a, "agent_type", None) == "risk_seeking" and getattr(a, "is_cooperator", False)),
+                "RiskSeekingNonCoopSugar": lambda m: sum(a.sugar_level for a in m.agents if getattr(a, "agent_type", None) == "risk_seeking" and not getattr(a, "is_cooperator", False)),
+                "RiskAverseNonCoopSugar": lambda m: sum(a.sugar_level for a in m.agents if getattr(a, "agent_type", None) == "risk_averse" and not getattr(a, "is_cooperator", False)),
+                "NeutralNonCoopSugar": lambda m: sum(a.sugar_level for a in m.agents if getattr(a, "agent_type", None) == "neutral" and not getattr(a, "is_cooperator", False)),
             },
             agent_reporters={
                 "SugarLevel": lambda a: a.sugar_level,
