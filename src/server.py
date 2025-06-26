@@ -48,18 +48,44 @@ def agent_portrayal(agent):
         # "tooltip": f"ID:{agent.unique_id}, sugar:{sugar_level}",
     }
 
-# Property layer portrayal for sugar field
-propertylayer_portrayal = {
-    "sugar": {"color": "orange", "alpha": 0.6, "colorbar": True, "vmin": 0, "vmax": 4}
-}
-
-# Create space component
-sugarscape_space = make_mpl_space_component(
-    agent_portrayal=agent_portrayal,
-    propertylayer_portrayal=propertylayer_portrayal,
-    post_process=None,
-    draw_grid=False,
-)
+# Custom component for the grid visualization with dynamic colorbar
+@solara.component
+def DynamicSugarscapeSpace(model):
+    update_counter.get()
+    
+    if hasattr(model, 'value'):
+        current_model = model.value
+    else:
+        current_model = model
+    
+    # Get current max sugar value
+    if hasattr(current_model, 'grid_sugar'):
+        current_max = np.max(current_model.grid_sugar)
+        # vmax is at least 4, but if any cell exceeds 4, use the actual max
+        vmax = max(4, current_max)
+    else:
+        vmax = 4
+    
+    # Create property layer portrayal with current vmax
+    propertylayer_portrayal = {
+        "sugar": {
+            "color": "orange", 
+            "alpha": 0.6, 
+            "colorbar": True, 
+            "vmin": 0, 
+            "vmax": vmax
+        }
+    }
+    
+    # Create and return the space component
+    space_component = make_mpl_space_component(
+        agent_portrayal=agent_portrayal,
+        propertylayer_portrayal=propertylayer_portrayal,
+        post_process=None,
+        draw_grid=False,
+    )
+    
+    return space_component(current_model)
 
 # Get actual dimensions from sugar map
 def get_sugar_map_dimensions():
@@ -146,7 +172,11 @@ def SugarLevelByTypeHistogram(model):
     if all_sugar_values:
         max_sugar = max(all_sugar_values)
         print(f"Max sugar level across all agents: {max_sugar}")
-        bins = range(0, max_sugar + 5, 2) if max_sugar > 0 else [0, 1, 2]
+        if isinstance(max_sugar, float):
+            bin_size = 2.0  # or 1.0, 0.5, etc. depending on your data
+            bins = np.arange(0, max_sugar + bin_size, bin_size)
+        else:
+            bins = range(0, max_sugar + 5, 2) if max_sugar > 0 else [0, 1, 2]
         
         if risk_averse_sugar:
             ax1.hist(risk_averse_sugar, bins=bins, alpha=0.7, color='blue', label='Risk Averse', density=True)
@@ -166,7 +196,11 @@ def SugarLevelByTypeHistogram(model):
         all_coop_sugar = cooperator_sugar + non_cooperator_sugar
         if all_coop_sugar:
             max_sugar_coop = max(all_coop_sugar)
-            bins_coop = range(0, max_sugar_coop + 5, 2) if max_sugar_coop > 0 else [0, 1, 2]
+            if isinstance(max_sugar_coop, float):
+                bin_size = 2.0
+                bins_coop = np.arange(0, max_sugar_coop + bin_size, bin_size)
+            else:
+                bins_coop = range(0, max_sugar_coop + 5, 2) if max_sugar_coop > 0 else [0, 1, 2]
             
             if cooperator_sugar:
                 ax2.hist(cooperator_sugar, bins=bins_coop, alpha=0.7, color='purple', label='Cooperators', density=True)
@@ -225,9 +259,9 @@ def AlphaDistribution(model):
     ax.grid(True, alpha=0.3)
     
     # Add vertical lines for default values
-    ax.axvline(x=-1.0, color='blue', linestyle='--', alpha=0.5)
+    ax.axvline(x=1.0, color='blue', linestyle='--', alpha=0.5)
     ax.axvline(x=0.0, color='green', linestyle='--', alpha=0.5)
-    ax.axvline(x=1.0, color='red', linestyle='--', alpha=0.5)
+    ax.axvline(x=-1.0, color='red', linestyle='--', alpha=0.5)
     
     return solara.FigureMatplotlib(fig)
 
@@ -355,7 +389,7 @@ page = SolaraViz(
     model,
     components=[
         ResearchModeInfo,
-        sugarscape_space,
+        DynamicSugarscapeSpace,  # Use the dynamic component
         make_plot_component("TotalSugar"),
         SugarLevelByTypeHistogram,
         AlphaDistribution,
