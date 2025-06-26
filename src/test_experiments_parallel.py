@@ -13,6 +13,8 @@ from pathlib import Path
 from sugar_model import SugarModel
 import concurrent.futures
 from pathlib import Path
+from tqdm import tqdm 
+
 
 def test_model_dimensions():
     """Test that model uses correct dimensions from sugar map"""
@@ -57,41 +59,38 @@ def run_single_simulation(lambda_param, alpha, i, steps):
         lambda_dir.mkdir(parents=True, exist_ok=True)
         filename = lambda_dir / f"test1_results_steps_{steps}_alpha_{alpha}_run_{i}.csv"
         results.to_csv(filename)
-        print(f"  [λ={lambda_param}, α={alpha}, run={i}] saved: {filename.name}")
+        return f"[λ={lambda_param}, α={alpha}, run={i}] ✅ saved"
     except Exception as e:
-        print(f"  [λ={lambda_param}, α={alpha}, run={i}] error: {e}")
+        return f"[λ={lambda_param}, α={alpha}, run={i}] ❌ error: {e}"
 
-def run_mixed_parameter_testing(steps=200):
-    """Option 1: Mixed parameter testing (lambda + alpha combinations)"""
+def run_mixed_parameter_testing(steps=200, max_workers=4):  # 默认限制并行为4个
     print("Mixed Parameter Testing (Lambda + Alpha combinations)")
     print("=" * 60)
-    
+
     MC_TEST_REPEAT = 10
     Parameters_lambda = list(range(1, 21))
-    Parameters_alpha = [0]
-    # Parameters_alpha = [-2, -1, 0, 1, 2]
-    
+    Parameters_alpha = [0]  # 或使用 [-2, -1, 0, 1, 2]
+
     param_combinations = [(l, a) for l in Parameters_lambda for a in Parameters_alpha]
+    total_jobs = len(param_combinations) * MC_TEST_REPEAT
+
     print(f"Parameter combinations: {len(param_combinations)}")
     print(f"MC repetitions per combination: {MC_TEST_REPEAT}")
-    print(f"Total runs: {len(param_combinations) * MC_TEST_REPEAT}")
-    
-    # Prepare output directory
-    base_output_dir = Path("output") / "mixed_parameter_results"
-    base_output_dir.mkdir(parents=True, exist_ok=True)
+    print(f"Total runs: {total_jobs}")
+    print(f"Running with max {max_workers} workers")
 
-    # Build all jobs
-    jobs = []
-    for lambda_param, alpha in param_combinations:
-        for i in range(MC_TEST_REPEAT):
-            jobs.append((lambda_param, alpha, i, steps))
-    
-    # Run jobs in parallel
-    with concurrent.futures.ProcessPoolExecutor() as executor:
+    # 构建任务列表
+    jobs = [(lambda_param, alpha, i, steps)
+            for lambda_param, alpha in param_combinations
+            for i in range(MC_TEST_REPEAT)]
+
+    # 并行执行任务，带有限制的 worker 数
+    with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
         futures = [executor.submit(run_single_simulation, *job) for job in jobs]
-        concurrent.futures.wait(futures)
+        for f in tqdm(concurrent.futures.as_completed(futures), total=total_jobs):
+            print(f.result())
 
-    print("All simulations completed.")
+    print("✅ All simulations completed.")
 
 
 def run_alpha_sensitivity_analysis(steps=200):
@@ -259,4 +258,6 @@ def run_full_experiment(steps=200):
 
 if __name__ == "__main__":
     # run_full_experiment()
-    run_mixed_parameter_testing(steps=1000)
+    max_workers = max(os.cpu_count() - 4, 1)
+    print(f"Cpu cores count: {os.cpu_count()}, Using {max_workers} parallel workers for mixed parameter testing.")
+    run_mixed_parameter_testing(steps=1000, max_workers=max_workers)
