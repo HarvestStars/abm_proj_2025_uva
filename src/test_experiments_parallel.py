@@ -346,15 +346,4 @@ def run_full_experiment(steps=200):
 
 if __name__ == "__main__":
     steps = 1000
-    # run_alpha_sensitivity_analysis(steps, risk_averse=True)
-    # run_alpha_sensitivity_analysis(steps, risk_averse=False)
-
-    # cooperation_rate_analysis(steps)
-    # feedback_analysis(steps)
-    
-    # max_workers = max(os.cpu_count() - 4, 1)
-    # print(f"Cpu cores count: {os.cpu_count()}, Using {max_workers} parallel workers for mixed parameter testing.")
-    # run_mixed_parameter_testing(steps=100, max_workers=max_workers)
-    
-    # for i in range(1,11): 
-    #     run_single_simulation(1000, 0, i, 1000)
+    run_full_experiment(steps)
